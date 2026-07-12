@@ -23,3 +23,9 @@ Upload these files/folders to your GitHub repo:
 - `.streamlit/`
 
 Then deploy with main file path: `app.py`.
+
+
+## v1.1 fix
+- Fixed pandas compatibility error when filling fallback conversion rates.
+- Improved blank BD/name handling.
+- Smoke-tested against a 1,901-row, 174-column monthly report.

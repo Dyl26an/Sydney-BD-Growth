@@ -24,11 +24,23 @@ def standardize(df: pd.DataFrame, month: str) -> pd.DataFrame:
     m = columns_map(df)
     out = pd.DataFrame(index=df.index)
     out["month"] = month
-    out["merchant_name"] = df[m["merchant_name"]].astype(str) if m["merchant_name"] else "Unknown"
-    out["merchant_id"] = df[m["merchant_id"]].astype(str) if m["merchant_id"] else out["merchant_name"]
-    bd_name = df[m["bd_name"]].astype(str) if m["bd_name"] else None
-    bd_id = df[m["bd_id"]].astype(str) if m["bd_id"] else None
-    out["bd"] = bd_name.where(bd_name.notna() & (bd_name.str.strip()!=""), bd_id) if bd_name is not None else (bd_id if bd_id is not None else "Unknown")
+    def clean_text(col_name, default="Unknown"):
+        if not col_name:
+            return pd.Series(default, index=df.index, dtype="object")
+        x = df[col_name].astype("string").str.strip()
+        return x.mask(x.isna() | x.eq("") | x.str.lower().isin(["nan", "none", "null"]), default).astype(str)
+
+    out["merchant_name"] = clean_text(m["merchant_name"])
+    out["merchant_id"] = clean_text(m["merchant_id"], default="") if m["merchant_id"] else out["merchant_name"]
+    out["merchant_id"] = out["merchant_id"].where(out["merchant_id"].str.strip() != "", out["merchant_name"])
+    bd_name = clean_text(m["bd_name"], default="") if m["bd_name"] else None
+    bd_id = clean_text(m["bd_id"], default="") if m["bd_id"] else None
+    if bd_name is not None:
+        out["bd"] = bd_name.where(bd_name.str.strip() != "", bd_id if bd_id is not None else "Unknown")
+    elif bd_id is not None:
+        out["bd"] = bd_id.where(bd_id.str.strip() != "", "Unknown")
+    else:
+        out["bd"] = "Unknown"
     out["area"] = df[m["area"]].astype(str) if m["area"] else "Unknown"
     out["category"] = df[m["category"]].astype(str) if m["category"] else "Unknown"
     out["level"] = df[m["level"]].astype(str) if m["level"] else "Auto"
@@ -38,8 +50,18 @@ def standardize(df: pd.DataFrame, month: str) -> pd.DataFrame:
     for key in ["rate_ev", "rate_vc", "rate_co", "rate_eo"]:
         out[key] = pct_to_ratio(df[m[key]]) if m[key] else np.nan
     # fallbacks only when official rate missing and same-period counts are usable
-    out["rate_ev"] = out["rate_ev"].fillna(np.where(out["exposure"]>0, out["visit"]/out["exposure"], 0))
-    out["rate_vc"] = out["rate_vc"].fillna(np.where(out["visit"]>0, out["cart"]/out["visit"], 0))
+    fallback_ev = pd.Series(
+        np.where(out["exposure"] > 0, out["visit"] / out["exposure"], 0.0),
+        index=out.index,
+        dtype=float,
+    )
+    fallback_vc = pd.Series(
+        np.where(out["visit"] > 0, out["cart"] / out["visit"], 0.0),
+        index=out.index,
+        dtype=float,
+    )
+    out["rate_ev"] = out["rate_ev"].fillna(fallback_ev)
+    out["rate_vc"] = out["rate_vc"].fillna(fallback_vc)
     # order is often monthly cumulative while cart is average users; do not fallback aggressively
     out["rate_co"] = out["rate_co"].fillna(0)
     out["rate_eo"] = out["rate_eo"].fillna(0)
