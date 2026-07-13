@@ -1,6 +1,6 @@
-streamlit>=1.32
-pandas>=2.0
-openpyxl>=3.1
-msoffcrypto-tool>=5.1
-plotly>=5.20
-numpy>=1.24
+streamlit>=1.32,<2
+pandas>=2.2,<3
+openpyxl>=3.1,<4
+msoffcrypto-tool>=5.1,<6
+plotly>=5.20,<7
+numpy>=1.26,<3

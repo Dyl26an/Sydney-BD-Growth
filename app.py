@@ -10,7 +10,7 @@ from core.intelligence import alert_center, merchant_health, top_learning_mercha
 
 st.set_page_config(page_title="Sydney Growth Intelligence", layout="wide", page_icon="📈")
 st.title("📈 Sydney Growth Intelligence Platform")
-st.caption("Multi-month BD growth intelligence: Learn, Fix, Grow.")
+st.caption("Multi-month BD growth intelligence: Learn, Fix, Grow. · Build v1.2")
 
 with st.sidebar:
     st.header("1) Upload reports")
